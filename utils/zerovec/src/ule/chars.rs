@@ -6,7 +6,8 @@
 //! ULE implementation for the `char` type.
 
 use super::*;
-use crate::impl_ule_from_array;
+use crate::impl_const_as_ule_array;
+use crate::ule::constconvert::ConstConvert;
 use core::cmp::Ordering;
 use core::convert::TryFrom;
 
@@ -42,17 +43,32 @@ use core::convert::TryFrom;
 pub struct CharULE([u8; 3]);
 
 impl CharULE {
+    // /// Converts a [`char`] to a [`CharULE`]. This is equivalent to calling
+    // /// [`AsULE::to_unaligned()`]
+    // ///
+    // /// See the type-level documentation for [`CharULE`] for more information.
+    // #[inline]
+    // pub const fn from_aligned(c: char) -> Self {
+    //     let [u0, u1, u2, _u3] = (c as u32).to_le_bytes();
+    //     Self([u0, u1, u2])
+    // }
+    //
+    // impl_ule_from_array!(char, CharULE, Self([0; 3]));
+}
+
+impl ConstConvert<char, CharULE> {
     /// Converts a [`char`] to a [`CharULE`]. This is equivalent to calling
     /// [`AsULE::to_unaligned()`]
     ///
     /// See the type-level documentation for [`CharULE`] for more information.
+    #[allow(dead_code)]
     #[inline]
-    pub const fn from_aligned(c: char) -> Self {
+    pub const fn aligned_to_unaligned(c: char) -> CharULE {
         let [u0, u1, u2, _u3] = (c as u32).to_le_bytes();
-        Self([u0, u1, u2])
+        CharULE([u0, u1, u2])
     }
 
-    impl_ule_from_array!(char, CharULE, Self([0; 3]));
+    impl_const_as_ule_array!(char, CharULE, CharULE([0; 3]));
 }
 
 // Safety (based on the safety checklist on the ULE trait):
@@ -87,7 +103,7 @@ impl AsULE for char {
 
     #[inline]
     fn to_unaligned(self) -> Self::ULE {
-        CharULE::from_aligned(self)
+        <Self as ConstAsULE>::ConstConvert::aligned_to_unaligned(self)
     }
 
     #[inline]
@@ -102,6 +118,10 @@ impl AsULE for char {
             ]))
         }
     }
+}
+
+impl ConstAsULE for char {
+    type ConstConvert = ConstConvert<char, <char as AsULE>::ULE>;
 }
 
 impl PartialOrd for CharULE {
@@ -123,7 +143,8 @@ mod test {
     #[test]
     fn test_from_array() {
         const CHARS: [char; 2] = ['a', '🙃'];
-        const CHARS_ULE: [CharULE; 2] = CharULE::from_array(CHARS);
+        const CHARS_ULE: [CharULE; 2] =
+            <char as ConstAsULE>::ConstConvert::aligned_to_unaligned_array(CHARS);
         assert_eq!(
             CharULE::as_byte_slice(&CHARS_ULE),
             &[0x61, 0x00, 0x00, 0x43, 0xF6, 0x01]
@@ -133,7 +154,8 @@ mod test {
     #[test]
     fn test_from_array_zst() {
         const CHARS: [char; 0] = [];
-        const CHARS_ULE: [CharULE; 0] = CharULE::from_array(CHARS);
+        const CHARS_ULE: [CharULE; 0] =
+            <char as ConstAsULE>::ConstConvert::aligned_to_unaligned_array(CHARS);
         let bytes = CharULE::as_byte_slice(&CHARS_ULE);
         let empty: &[u8] = &[];
         assert_eq!(bytes, empty);

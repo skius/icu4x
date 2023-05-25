@@ -11,6 +11,7 @@
 //! See [the design doc](https://github.com/unicode-org/icu4x/blob/main/utils/zerovec/design_doc.md) for details on how these traits
 //! works under the hood.
 mod chars;
+mod constconvert;
 #[cfg(doc)]
 pub mod custom;
 mod encode;
@@ -237,6 +238,17 @@ where
     fn slice_to_unaligned(_: &[Self]) -> Option<&[Self::ULE]> {
         None
     }
+}
+
+// TODO general: split into two PR, mention in first PR how second PR will apply the macros all around ICU4X.
+// TODO: maybe make ConstAsULE generation in make_ule macro opt-in? Users should have the option of
+// overriding default single and array conversion functions.
+// TODO: put these notes in the notes doc
+
+// TODO: doc. e.g.: mention the required functions, and talk about how they're named in a general way
+// so it doesn't matter whether they are associated function of AsULE, ULE, or some other type (eg ConstConvert<T, U>)
+pub trait ConstAsULE: AsULE {
+    type ConstConvert;
 }
 
 /// Variable-width, byte-aligned data that can be cast to and from a little-endian byte slice.

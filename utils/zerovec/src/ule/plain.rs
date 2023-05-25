@@ -6,8 +6,11 @@
 //! ULE implementation for Plain Old Data types, including all sized integers.
 
 use super::*;
+use crate::impl_const_as_ule_array;
 use crate::impl_ule_from_array;
+use crate::ule::constconvert::ConstConvert;
 use crate::ZeroSlice;
+
 use core::num::{NonZeroI8, NonZeroU8};
 
 /// A u8 array of little-endian data with infallible conversions to and from &[u8].
@@ -70,19 +73,21 @@ macro_rules! impl_byte_slice_size {
 
             #[doc = concat!("Converts a `", stringify!($unsigned), "` to a `RawBytesULE`. This is equivalent to calling [`AsULE::to_unaligned()`] on the appropriately sized type.")]
             #[inline]
-            pub const fn from_aligned(value: $unsigned) -> Self {
+            pub const fn from_unsigned(value: $unsigned) -> Self {
                 Self(value.to_le_bytes())
             }
 
             impl_ule_from_array!(
                 $unsigned,
                 RawBytesULE<$size>,
-                RawBytesULE([0; $size])
+                RawBytesULE([0; $size]),
+                Self::from_unsigned
             );
         }
     };
 }
 
+// TODO: check, do we need this still?
 macro_rules! impl_const_constructors {
     ($base:ty, $size:literal) => {
         impl ZeroSlice<$base> {
@@ -132,6 +137,19 @@ macro_rules! impl_byte_slice_type {
         // EqULE is true because $type and RawBytesULE<$size>
         // have the same byte sequence on little-endian
         unsafe impl EqULE for $type {}
+
+        impl ConstConvert<$type, RawBytesULE<$size>> {
+            #[allow(dead_code)]
+            pub const fn aligned_to_unaligned(value: $type) -> RawBytesULE<$size> {
+                RawBytesULE(value.to_le_bytes())
+            }
+
+            impl_const_as_ule_array!($type, RawBytesULE<$size>, RawBytesULE([0; $size]));
+        }
+
+        impl ConstAsULE for $type {
+            type ConstConvert = ConstConvert<$type, RawBytesULE<$size>>;
+        }
     };
 }
 

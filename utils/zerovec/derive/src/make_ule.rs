@@ -159,6 +159,15 @@ fn make_ule_enum_impl(
 
     let doc = format!("[`ULE`](zerovec::ule::ULE) type for {name}");
 
+    let const_convert_name: TokenStream2 =
+        format!("__internal__const_convert_{}_{}", name, ule_name)
+            .parse()
+            .unwrap();
+    let ule_array_macro_alias: TokenStream2 =
+        format!("__impl_const_as_ule_array_{}_{}", name, ule_name)
+            .parse()
+            .unwrap();
+
     // Safety (based on the safety checklist on the ULE trait):
     //  1. ULE type does not include any uninitialized or padding bytes.
     //     (achieved by `#[repr(transparent)]` on a type that satisfies this invariant
@@ -176,6 +185,34 @@ fn make_ule_enum_impl(
         #maybe_ord_derives
         #[doc = #doc]
         #vis struct #ule_name(u8);
+
+        use zerovec::impl_const_as_ule_array as #ule_array_macro_alias;
+
+        impl #ule_name {
+            // /// Equivalent to [`AsULE::to_unaligned()`].
+            // pub const fn from_aligned(a: #name) -> Self {
+            //     unsafe { ::core::mem::transmute(a) }
+            // }
+            //
+            // #[doc = concat!("Convert an array of `", stringify!(#name), "` to an array of `", stringify!(#ule_name), "`.")]
+            // pub const fn from_array<const N: usize>(arr: [#name; N]) -> [Self; N] {
+            //     let mut result = [unsafe { ::core::mem::transmute(0u8) }; N];
+            //     let mut i = 0;
+            //     // Won't panic because i < N and arr has length N
+            //     #[allow(clippy::indexing_slicing)]
+            //     while i < N {
+            //         result[i] = Self::from_aligned(arr[i]);
+            //         i += 1;
+            //     }
+            //     result
+            // }
+
+            pub const fn aligned_to_unaligned(a: #name) -> #ule_name {
+                unsafe { ::core::mem::transmute(a) }
+            }
+
+            #ule_array_macro_alias!(#name, #ule_name, unsafe { ::core::mem::transmute(0u8) });
+        }
 
         unsafe impl zerovec::ule::ULE for #ule_name {
             #[inline]
@@ -206,6 +243,23 @@ fn make_ule_enum_impl(
                     ::core::mem::transmute(other)
                 }
             }
+        }
+
+        // use zerovec::impl_const_as_ule_array as #ule_array_macro_alias;
+        //
+        // #[allow(dead_code, missing_debug_implementations)]
+        // #vis struct #const_convert_name;
+        //
+        // impl #const_convert_name {
+        //     pub const fn aligned_to_unaligned(a: #name) -> #ule_name {
+        //         unsafe { ::core::mem::transmute(a) }
+        //     }
+        //
+        //     #ule_array_macro_alias!(#name, #ule_name, unsafe { ::core::mem::transmute(0u8) });
+        // }
+
+        impl zerovec::ule::ConstAsULE for #name {
+            type ConstConvert = #ule_name;
         }
 
         impl #name {
@@ -265,6 +319,29 @@ fn make_ule_struct_impl(
         #vis struct #ule_name #field_inits #semi
     );
     let derived = crate::ule::derive_impl(&ule_struct);
+
+    let ule_impl = quote!(
+        impl #ule_name {
+            // /// Equivalent to [`AsULE::to_unaligned()`].
+            // pub const fn from_aligned(a: u8) -> Self {
+            //     // unsafe { ::core::mem::transmute(a) }
+            //     unsafe { ::core::mem::transmute([0u8; 1]) }
+            // }
+            //
+            // #[doc = concat!("Convert an array of `", stringify!(#name), "` to an array of `", stringify!(#ule_name), "`.")]
+            // pub const fn from_array<const N: usize>(arr: [#name; N]) -> [Self; N] {
+            //     let mut result = [unsafe { ::core::mem::transmute([0u8; core::mem::size_of::<#ule_name>::()]) }; N];
+            //     let mut i = 0;
+            //     // Won't panic because i < N and arr has length N
+            //     #[allow(clippy::indexing_slicing)]
+            //     while i < N {
+            //         result[i] = Self::from_aligned(arr[i]);
+            //         i += 1;
+            //     }
+            //     result
+            // }
+        }
+    );
 
     let mut as_ule_conversions = vec![];
     let mut from_ule_conversions = vec![];
@@ -344,5 +421,7 @@ fn make_ule_struct_impl(
         #maybe_ord_impls
 
         #maybe_hash
+
+        #ule_impl
     )
 }

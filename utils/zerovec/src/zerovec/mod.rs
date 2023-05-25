@@ -919,6 +919,94 @@ impl<T: AsULE> FromIterator<T> for ZeroVec<'_, T> {
     }
 }
 
+/// Convenience wrapper for [`zerovec::ZeroSlice::from_ule_slice`].
+///
+/// Note that if your type `T` *does not* use a `T::ULE` type provided by this crate, you must manually ensure that your
+/// `T::ULE` type has a function `const fn from_array<const N: usize>(arr: [T; N]) -> [T::ULE; N]`.
+/// See [`zerovec::impl_ule_from_array!`] for a macro that implements such a function for your `ULE` type.
+///
+/// # Examples
+///
+/// Using the default array-conversion function:
+///
+/// ```
+/// use zerovec::{ZeroSlice, zeroslice};
+///
+/// const SIGNATURE: &ZeroSlice<char> = zeroslice![char; 'b', 'y', 'e', '✌'];
+/// const EMPTY: &ZeroSlice<u32> = zeroslice![];
+/// let nums = zeroslice![u32; 1, 2, 3, 4, 5];
+/// ```
+///
+/// Using a custom array-conversion function:
+///
+/// ```
+/// use zerovec::{ZeroSlice, zeroslice};
+///
+/// mod conversion {
+///     use zerovec::ule::RawBytesULE;
+///     pub(super) const fn i16_array_to_be_array<const N: usize>(arr: [i16; N]) -> [RawBytesULE<2>; N] {
+///         let mut result = [RawBytesULE([0; 2]); N];
+///         let mut i = 0;
+///         while i < N {
+///             result[i] = RawBytesULE(arr[i].to_be_bytes());
+///             i += 1;
+///         }
+///         result
+///     }
+/// }
+///
+/// const NUMBERS: &ZeroSlice<i16> = zeroslice![i16; conversion::i16_array_to_be_array; 1, -2, 3, -4, 5];
+/// ```
+#[macro_export]
+macro_rules! zeroslice {
+    () => (
+        $crate::ZeroSlice::new_empty()
+    );
+    ($aligned:ty; $from_array:expr; $($x:expr),+ $(,)?) => (
+        $crate::ZeroSlice::<$aligned>::from_ule_slice(
+            {const X: &[<$aligned as $crate::ule::AsULE>::ULE] = &$from_array([$($x),+]); X}
+        )
+    );
+    ($aligned:ty; $($x:expr),+ $(,)?) => (
+        $crate::zeroslice![$aligned; <$aligned as $crate::ule::ConstAsULE>::ConstConvert::aligned_to_unaligned_array; $($x),+]
+    );
+}
+
+/// This creates a borrowed `ZeroVec`. Convenience wrapper for `zeroslice![...].as_zerovec()`.
+///
+/// See [`zeroslice!`] for more information.
+///
+/// # Examples
+///
+/// ```
+/// use zerovec::{ZeroVec, zerovec};
+///
+/// const SIGNATURE: ZeroVec<char> = zerovec![char; 'a', 'y', 'e', '✌'];
+/// assert!(!SIGNATURE.is_owned());
+///
+/// const EMPTY: ZeroVec<u32> = zerovec![];
+/// assert!(!EMPTY.is_owned());
+/// ```
+///
+/// Working in non-`const` contexts:
+///
+/// ```
+/// use zerovec::{ZeroVec, zerovec};
+/// use zerovec::ule::AsULE;
+///
+/// let mut signature: ZeroVec<char> = zerovec![char; 'a', 'y', 'e', '✌'].into_owned();
+/// assert!(signature.is_owned());
+/// signature.to_mut_slice()[0] = 'b'.to_unaligned();
+#[macro_export]
+macro_rules! zerovec {
+    () => (
+        $crate::ZeroVec::new()
+    );
+    ($aligned:ty; $($x:expr),+ $(,)?) => (
+        $crate::zeroslice![$aligned; $($x),+].as_zerovec()
+    );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
