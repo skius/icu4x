@@ -380,9 +380,19 @@ impl<'a, 'b> UnicodeSetBuilder<'a, 'b> {
     }
 }
 
+fn coerce<'a: 'b, 'b: 'a>(iter: &'b mut Peekable<CharIndices<'a>>) -> &'a mut Peekable<CharIndices<'a>> {
+    iter
+}
+
 pub fn parse(source: &str) -> Result<()> {
     let mut iter = source.char_indices().peekable();
-    let mut builder = UnicodeSetBuilder::new_inner(&mut iter);
+    let iter_ref = &mut iter;
+
+    let iter_ref_with_a_a = coerce(iter_ref);
+
+
+
+    let mut builder = UnicodeSetBuilder::new_inner(iter_ref_with_a_a);
 
     builder.parse_unicode_set()?;
 
