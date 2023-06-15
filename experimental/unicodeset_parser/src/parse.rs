@@ -74,15 +74,15 @@ enum Operation {
 }
 
 // note: "compiles" the set while building, so no intermediate parse tree, it's directly compiled.
-pub struct UnicodeSetBuilder<'a, 'b> {
+pub struct UnicodeSetBuilder<'a> {
     single_set: CodePointInversionListBuilder,
     multi_set: HashSet<String>,
-    iter: &'b mut Peekable<CharIndices<'a>>,
+    iter: &'a mut Peekable<CharIndices<'a>>,
     next_op: Operation,
     inverted: bool,
 }
 
-impl<'a, 'b> UnicodeSetBuilder<'a, 'b> {
+impl<'a> UnicodeSetBuilder<'a> {
     // TODO: the parse_ functions might need an "op" argument that tells them whether to add or subtract or intersect the parsed content
     // maybe also rename in that case to collect_x or handle_x? parse could be fine though.
 
@@ -91,7 +91,7 @@ impl<'a, 'b> UnicodeSetBuilder<'a, 'b> {
     //     UnicodeSetBuilder::new_inner(&mut source.char_indices().peekable())
     // }
 
-    fn new_inner(iter: &'b mut Peekable<CharIndices<'a>>) -> UnicodeSetBuilder<'a, 'b> {
+    fn new_inner(iter: &'a mut Peekable<CharIndices<'a>>) -> UnicodeSetBuilder<'a> {
         UnicodeSetBuilder {
             single_set: CodePointInversionListBuilder::new(),
             multi_set: Default::default(),
