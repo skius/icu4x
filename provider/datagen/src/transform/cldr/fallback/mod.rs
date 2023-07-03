@@ -6,8 +6,8 @@ use crate::transform::cldr::cldr_serde;
 
 use super::locale_canonicalizer::likely_subtags::LikelySubtagsResources;
 use icu_locid::{
-    extensions::unicode::Key,
-    extensions_unicode_key, langid,
+    extensions::unicode::{key, Key},
+    langid,
     subtags::{Language, Region, Script},
     LanguageIdentifier,
 };
@@ -21,8 +21,9 @@ use zerovec::{maps::ZeroMap2d, ule::UnvalidatedStr};
 impl DataProvider<LocaleFallbackLikelySubtagsV1Marker> for crate::DatagenProvider {
     fn load(
         &self,
-        _: DataRequest,
+        req: DataRequest,
     ) -> Result<DataResponse<LocaleFallbackLikelySubtagsV1Marker>, DataError> {
+        self.check_req::<LocaleFallbackLikelySubtagsV1Marker>(req)?;
         let resources = LikelySubtagsResources::try_from_source_data(&self.source)?;
 
         let metadata = DataResponseMetadata::default();
@@ -36,8 +37,9 @@ impl DataProvider<LocaleFallbackLikelySubtagsV1Marker> for crate::DatagenProvide
 impl DataProvider<LocaleFallbackParentsV1Marker> for crate::DatagenProvider {
     fn load(
         &self,
-        _: DataRequest,
+        req: DataRequest,
     ) -> Result<DataResponse<LocaleFallbackParentsV1Marker>, DataError> {
+        self.check_req::<LocaleFallbackParentsV1Marker>(req)?;
         let parents_data: &cldr_serde::parent_locales::Resource = self
             .source
             .cldr()?
@@ -55,8 +57,9 @@ impl DataProvider<LocaleFallbackParentsV1Marker> for crate::DatagenProvider {
 impl DataProvider<CollationFallbackSupplementV1Marker> for crate::DatagenProvider {
     fn load(
         &self,
-        _req: DataRequest,
+        req: DataRequest,
     ) -> Result<DataResponse<CollationFallbackSupplementV1Marker>, DataError> {
+        self.check_req::<CollationFallbackSupplementV1Marker>(req)?;
         // TODO(#1964): Load this data from its proper sources. For now, it is copied from:
         // https://github.com/unicode-org/icu/blob/main/tools/cldr/cldr-to-icu/build-icu-data.xml
         // as well as from CLDR XML.
@@ -66,12 +69,8 @@ impl DataProvider<CollationFallbackSupplementV1Marker> for crate::DatagenProvide
             ("yue".into(), (&langid!("zh-Hant")).into()), //
         ];
         let unicode_extension_defaults_list: [(Key, &UnvalidatedStr, &UnvalidatedStr); 2] = [
-            (extensions_unicode_key!("co"), "zh".into(), "pinyin".into()),
-            (
-                extensions_unicode_key!("co"),
-                "zh-Hant".into(),
-                "stroke".into(),
-            ),
+            (key!("co"), "zh".into(), "pinyin".into()),
+            (key!("co"), "zh-Hant".into(), "stroke".into()),
         ];
         let data = LocaleFallbackSupplementV1 {
             parents: parents_list.into_iter().collect(),
@@ -202,7 +201,8 @@ impl From<&cldr_serde::parent_locales::Resource> for LocaleFallbackParentsV1<'st
 #[test]
 fn test_basic() {
     use icu_locid::{
-        langid, subtags_language as language, subtags_region as region, subtags_script as script,
+        langid,
+        subtags::{language, region, script},
     };
 
     let provider = crate::DatagenProvider::for_test();

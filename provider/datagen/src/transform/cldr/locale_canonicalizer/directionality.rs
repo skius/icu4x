@@ -9,7 +9,8 @@ use icu_provider::datagen::IterableDataProvider;
 use icu_provider::prelude::*;
 
 impl DataProvider<ScriptDirectionV1Marker> for crate::DatagenProvider {
-    fn load(&self, _: DataRequest) -> Result<DataResponse<ScriptDirectionV1Marker>, DataError> {
+    fn load(&self, req: DataRequest) -> Result<DataResponse<ScriptDirectionV1Marker>, DataError> {
+        self.check_req::<ScriptDirectionV1Marker>(req)?;
         let data: &cldr_serde::directionality::Resource = self
             .source
             .cldr()?
@@ -51,7 +52,7 @@ impl From<&cldr_serde::directionality::Resource> for ScriptDirectionV1<'_> {
 
 #[test]
 fn test_basic() {
-    use icu_locid::subtags_script as script;
+    use icu_locid::subtags::script;
 
     let provider = crate::DatagenProvider::for_test();
     let data: DataPayload<ScriptDirectionV1Marker> = provider

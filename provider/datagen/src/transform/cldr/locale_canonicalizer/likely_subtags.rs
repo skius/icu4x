@@ -12,7 +12,8 @@ use icu_provider::prelude::*;
 use std::collections::{BTreeMap, HashSet};
 
 impl DataProvider<LikelySubtagsV1Marker> for crate::DatagenProvider {
-    fn load(&self, _: DataRequest) -> Result<DataResponse<LikelySubtagsV1Marker>, DataError> {
+    fn load(&self, req: DataRequest) -> Result<DataResponse<LikelySubtagsV1Marker>, DataError> {
+        self.check_req::<LikelySubtagsV1Marker>(req)?;
         let resources = LikelySubtagsResources::try_from_source_data(&self.source)?;
 
         Ok(DataResponse {
@@ -31,8 +32,9 @@ impl IterableDataProvider<LikelySubtagsV1Marker> for crate::DatagenProvider {
 impl DataProvider<LikelySubtagsExtendedV1Marker> for crate::DatagenProvider {
     fn load(
         &self,
-        _: DataRequest,
+        req: DataRequest,
     ) -> Result<DataResponse<LikelySubtagsExtendedV1Marker>, DataError> {
+        self.check_req::<LikelySubtagsExtendedV1Marker>(req)?;
         let resources = LikelySubtagsResources::try_from_source_data(&self.source)?;
 
         Ok(DataResponse {
@@ -55,6 +57,7 @@ impl DataProvider<LikelySubtagsForLanguageV1Marker> for crate::DatagenProvider {
         &self,
         req: DataRequest,
     ) -> Result<DataResponse<LikelySubtagsForLanguageV1Marker>, DataError> {
+        self.check_req::<LikelySubtagsForLanguageV1Marker>(req)?;
         let response = DataProvider::<LikelySubtagsV1Marker>::load(self, req)?;
         Ok(DataResponse {
             metadata: response.metadata,
@@ -74,6 +77,7 @@ impl DataProvider<LikelySubtagsForScriptRegionV1Marker> for crate::DatagenProvid
         &self,
         req: DataRequest,
     ) -> Result<DataResponse<LikelySubtagsForScriptRegionV1Marker>, DataError> {
+        self.check_req::<LikelySubtagsForScriptRegionV1Marker>(req)?;
         let response = DataProvider::<LikelySubtagsV1Marker>::load(self, req)?;
         Ok(DataResponse {
             metadata: response.metadata,
@@ -256,18 +260,16 @@ fn transform<'x>(
             .map(|(k, v)| (k.to_unvalidated(), v))
             .collect(),
         und: und.unwrap_or((
-            icu_locid::subtags_language!("und"),
-            icu_locid::subtags_script!("Zzzz"),
-            icu_locid::subtags_region!("ZZ"),
+            icu_locid::subtags::language!("und"),
+            icu_locid::subtags::script!("Zzzz"),
+            icu_locid::subtags::region!("ZZ"),
         )),
     }
 }
 
 #[test]
 fn test_basic() {
-    use icu_locid::{
-        subtags_language as language, subtags_region as region, subtags_script as script,
-    };
+    use icu_locid::subtags::{language, region, script};
 
     let provider = crate::DatagenProvider::for_test();
     let result_common: DataPayload<LikelySubtagsV1Marker> = provider
