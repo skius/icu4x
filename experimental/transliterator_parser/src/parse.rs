@@ -272,7 +272,6 @@ where
     // separates variant from ID
     const VARIANT_SEP: char = '/';
 
-
     fn new(
         iter: &'a mut Peekable<CharIndices<'b>>,
         xid_start: &'a CodePointInversionList<'a>,
@@ -327,7 +326,8 @@ where
         // because all three options can start with a UnicodeSet, we just try to parse everything
         // into options, and assemble at the end
 
-        let (forward_filter, forward_basic_id, reverse_filter, reverse_basic_id, has_reverse) = self.parse_filter_or_transform_rule_parts()?;
+        let (forward_filter, forward_basic_id, reverse_filter, reverse_basic_id, has_reverse) =
+            self.parse_filter_or_transform_rule_parts()?;
 
         // the offset of ';'
         let meta_err_offset = self.must_peek_index()?;
@@ -335,16 +335,21 @@ where
 
         // try to assemble the rule
         // first try global filters
-        match (forward_filter.is_some(), forward_basic_id.is_some(), reverse_filter.is_some(), reverse_basic_id.is_some()) {
+        match (
+            forward_filter.is_some(),
+            forward_basic_id.is_some(),
+            reverse_filter.is_some(),
+            reverse_basic_id.is_some(),
+        ) {
             (true, false, false, false) => {
                 // safety: by match, forward_filter.is_some() is true
                 #[allow(clippy::panicking_unwrap)]
-                return Ok(Rule::GlobalFilter(forward_filter.unwrap()))
-            },
+                return Ok(Rule::GlobalFilter(forward_filter.unwrap()));
+            }
             (false, false, true, false) => {
                 // safety: by match, reverse_filter.is_some() is true
                 #[allow(clippy::panicking_unwrap)]
-                return Ok(Rule::GlobalInverseFilter(reverse_filter.unwrap()))
+                return Ok(Rule::GlobalInverseFilter(reverse_filter.unwrap()));
             }
             _ => {}
         }
@@ -363,10 +368,18 @@ where
             // because this is difficult to verify, returning a PEK::Internal anyway
             // instead of unwrapping, despite technically being unnecessary
             let forward_basic_id = forward_basic_id.ok_or(PEK::Internal)?;
-            return Ok(Rule::Transform(SingleId {basic_id: forward_basic_id, filter: forward_filter}, None));
+            return Ok(Rule::Transform(
+                SingleId {
+                    basic_id: forward_basic_id,
+                    filter: forward_filter,
+                },
+                None,
+            ));
         }
 
-        if forward_filter.is_some() && forward_basic_id.is_none() || reverse_filter.is_some() && reverse_basic_id.is_none() {
+        if forward_filter.is_some() && forward_basic_id.is_none()
+            || reverse_filter.is_some() && reverse_basic_id.is_none()
+        {
             // cannot have a filter without a basic id
             return Err(PEK::InvalidId.with_offset(meta_err_offset));
         }
@@ -376,13 +389,27 @@ where
         // an empty reverse rule, such as ":: F () ;" is equivalent to ":: F (Any-Null) ;"
         let reverse_basic_id = reverse_basic_id.unwrap_or(BasicId::default());
 
-        let forward_single_id = SingleId {basic_id: forward_basic_id, filter: forward_filter};
-        let reverse_single_id = SingleId {basic_id: reverse_basic_id, filter: reverse_filter};
+        let forward_single_id = SingleId {
+            basic_id: forward_basic_id,
+            filter: forward_filter,
+        };
+        let reverse_single_id = SingleId {
+            basic_id: reverse_basic_id,
+            filter: reverse_filter,
+        };
 
         Ok(Rule::Transform(forward_single_id, Some(reverse_single_id)))
     }
 
-    fn parse_filter_or_transform_rule_parts(&mut self) -> Result<(Option<UnicodeSet>, Option<BasicId>, Option<UnicodeSet>, Option<BasicId>, bool)> {
+    fn parse_filter_or_transform_rule_parts(
+        &mut self,
+    ) -> Result<(
+        Option<UnicodeSet>,
+        Option<BasicId>,
+        Option<UnicodeSet>,
+        Option<BasicId>,
+        bool,
+    )> {
         // until we encounter a Self::OPEN_PAREN, we're parsing the forward single id or global filter
         let mut forward_filter = None;
         let mut forward_basic_id = None;
@@ -435,7 +462,13 @@ where
             }
         }
 
-        Ok((forward_filter, forward_basic_id, reverse_filter, reverse_basic_id, has_reverse))
+        Ok((
+            forward_filter,
+            forward_basic_id,
+            reverse_filter,
+            reverse_basic_id,
+            has_reverse,
+        ))
     }
 
     fn parse_conversion_or_variable_rule(&mut self) -> Result<Rule> {
@@ -518,7 +551,7 @@ where
                     if depth == 0 {
                         break;
                     }
-                },
+                }
                 '\\' if !escaped => escaped = true,
                 _ => escaped = false,
             }
