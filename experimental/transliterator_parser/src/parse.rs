@@ -144,6 +144,7 @@ pub(crate) enum Dir {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Rule {
     GlobalFilter(UnicodeSet),
     GlobalInverseFilter(UnicodeSet),
