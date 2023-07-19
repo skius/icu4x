@@ -70,8 +70,7 @@ type Result<T, E = ParseError> = core::result::Result<T, E>;
 type UnicodeSet = CodePointInversionListAndStringList<'static>;
 
 #[derive(Debug, Clone, Copy)]
-#[doc(hidden)]
-pub enum QuantifierKind {
+pub(crate) enum QuantifierKind {
     // ?
     ZeroOrOne,
     // *
@@ -82,8 +81,7 @@ pub enum QuantifierKind {
 
 // source-target/variant
 #[derive(Debug, Clone)]
-#[doc(hidden)]
-pub struct BasicId {
+pub(crate) struct BasicId {
     source: String,
     target: String,
     variant: String,
@@ -91,15 +89,13 @@ pub struct BasicId {
 
 // [set] source-target/variant
 #[derive(Debug, Clone)]
-#[doc(hidden)]
-pub struct SingleId {
+pub(crate) struct SingleId {
     filter: Option<UnicodeSet>,
     basic_id: BasicId,
 }
 
 #[derive(Debug, Clone)]
-#[doc(hidden)]
-pub enum Element {
+pub(crate) enum Element {
     // Examples:
     //  - hello\ world
     //  - 'hello world'
@@ -131,24 +127,21 @@ pub enum Element {
 type Section = Vec<Element>;
 
 #[derive(Debug, Clone)]
-#[doc(hidden)]
-pub struct HalfRule {
+pub(crate) struct HalfRule {
     ante: Section,
     key: Section,
     post: Section,
 }
 
 #[derive(Debug, Clone, Copy)]
-#[doc(hidden)]
-pub enum Dir {
+pub(crate) enum Dir {
     Forward,
     Backward,
     Both,
 }
 
 #[derive(Debug, Clone)]
-#[doc(hidden)]
-pub enum Rule {
+pub(crate) enum Rule {
     GlobalFilter(UnicodeSet),
     GlobalInverseFilter(UnicodeSet),
     // forward and backward IDs.
@@ -312,13 +305,11 @@ where
 }
 
 #[cfg(feature = "compiled_data")]
-#[doc(hidden)]
-pub fn parse(source: &str) -> Result<Vec<Rule>> {
+pub(crate) fn parse(source: &str) -> Result<Vec<Rule>> {
     parse_unstable(source, &icu_properties::provider::Baked)
 }
 
-#[doc(hidden)]
-pub fn parse_unstable<P>(source: &str, provider: &P) -> Result<Vec<Rule>>
+pub(crate) fn parse_unstable<P>(source: &str, provider: &P) -> Result<Vec<Rule>>
 where
     P: ?Sized
         + DataProvider<AsciiHexDigitV1Marker>
