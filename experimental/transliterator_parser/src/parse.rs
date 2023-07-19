@@ -343,12 +343,12 @@ where
         ) {
             (true, false, false, false) => {
                 // safety: by match, forward_filter.is_some() is true
-                #[allow(clippy::panicking_unwrap)]
+                #[allow(clippy::unwrap_used)]
                 return Ok(Rule::GlobalFilter(forward_filter.unwrap()));
             }
             (false, false, true, false) => {
                 // safety: by match, reverse_filter.is_some() is true
-                #[allow(clippy::panicking_unwrap)]
+                #[allow(clippy::unwrap_used)]
                 return Ok(Rule::GlobalInverseFilter(reverse_filter.unwrap()));
             }
             _ => {}
@@ -401,6 +401,7 @@ where
         Ok(Rule::Transform(forward_single_id, Some(reverse_single_id)))
     }
 
+    #[allow(clippy::type_complexity)] // used internally in one place only
     fn parse_filter_or_transform_rule_parts(
         &mut self,
     ) -> Result<(
@@ -588,7 +589,7 @@ where
 
     // skips until the next occurrence of c, which is also consumed
     fn skip_until(&mut self, end: char) {
-        while let Some((_, c)) = self.iter.next() {
+        for (_, c) in self.iter.by_ref() {
             if c == end {
                 break;
             }
