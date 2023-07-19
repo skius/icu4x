@@ -3,7 +3,7 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 pub(crate) fn compile(
-    rules: Vec<crate::parse::Rule>,
+    _rules: Vec<crate::parse::Rule>,
 ) -> Result<super::TransliteratorDataStruct, crate::ParseError> {
     todo!()
 }

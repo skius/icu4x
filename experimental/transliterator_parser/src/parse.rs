@@ -2,6 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+// TODO: remove this
+#![allow(unused)]
+
 use std::collections::HashMap;
 use std::{iter::Peekable, str::CharIndices};
 
@@ -145,12 +148,12 @@ pub(crate) enum Rule {
     GlobalFilter(UnicodeSet),
     GlobalInverseFilter(UnicodeSet),
     // forward and backward IDs.
-    // "A (B)" is TransformRule(A, Some(B)),
-    // "(B)" is TransformRule(Null, Some(B)),
-    // "A" is TransformRule(A, None),
-    // "A ()" is TransformRule(A, Some(Null))
-    TransformRule(SingleId, Option<SingleId>),
-    ConversionRule(HalfRule, Dir, HalfRule),
+    // "A (B)" is Transform(A, Some(B)),
+    // "(B)" is Transform(Null, Some(B)),
+    // "A" is Transform(A, None),
+    // "A ()" is Transform(A, Some(Null))
+    Transform(SingleId, Option<SingleId>),
+    Conversion(HalfRule, Dir, HalfRule),
     VariableDefinition(String, Section),
 }
 
