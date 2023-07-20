@@ -507,7 +507,7 @@ where
 
         let (source, target) = match second_id {
             None => ("Any".to_string(), first_id),
-            Some(second_id) => (first_id, second_id)
+            Some(second_id) => (first_id, second_id),
         };
 
         Ok(BasicId {
@@ -539,7 +539,7 @@ where
         }
         id.push(first_c);
 
-        loop{
+        loop {
             let c = self.must_peek_char()?;
             if !self.xid_continue.contains(c) {
                 break;
@@ -783,10 +783,7 @@ mod tests {
 
     #[test]
     fn test_global_filters_ok() {
-        let sources = [
-            r":: [^\[$] ;",
-            r":: ([^\[$]) ;",
-        ];
+        let sources = [r":: [^\[$] ;", r":: ([^\[$]) ;"];
 
         for source in &sources {
             if let Err(e) = parse(source) {
