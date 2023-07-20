@@ -158,6 +158,11 @@ impl ParseError {
         self.kind
     }
 
+    /// Returns the offset of this error in the source string, if it was specified.
+    pub fn offset(&self) -> Option<usize> {
+        self.offset
+    }
+
     fn or_with_offset(self, offset: usize) -> Self {
         match self.offset {
             Some(_) => self,
