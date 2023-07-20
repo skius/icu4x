@@ -5,7 +5,7 @@ const ENCODE: &str = r###"
 
 $any = [01] ;
 # backing up one char to make sure we can inser the end marker
-($any) > '(' 0 ',' $1 | ')' ;
+($any) > '(' $1 ',' 0 | ')' ;
 
 ([^]) } [$] > $1 '%' ;
 
