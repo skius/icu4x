@@ -5,7 +5,7 @@ const ENCODE: &str = r###"
 
 $any = [01] ;
 # backing up one char to make sure we can inser the end marker
-($any) > \( 0 \, $1 | \) ;
+($any) > '(' 0 ',' $1 | ')' ;
 
 ([^]) } $ > $1 '%' ;
 
@@ -16,8 +16,8 @@ const DECODE: &str = r###"
 # It decodes pairs back to binary (0 and 1) and removes the special marker '%'.
 
 $any = [01] ;
-$next1 = \( $any \, 1 \) ;
-$next0 = \( $any \, 0 \) ;
+$next1 = '(' $any ',' 1 ')' ;
+$next0 = '(' $any ',' 0 ')' ;
 
 $next1 > 1 ;
 $next0 > 0 ;
@@ -34,9 +34,9 @@ const ONE_STEP: &str = r###"
 ### VARIABLE DEFINITIONS ###
 $any = [01] ;
 # previous state was 1
-$prev1 = \( 1 \, $any \) ;
+$prev1 = '(' 1 ',' $any ')' ;
 # previous state was 0
-$prev0 = \( 0 \, $any \) ;
+$prev0 = '(' 0 ',' $any ')' ;
 ############################
 
 ####################### 00* #######################
