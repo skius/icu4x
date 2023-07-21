@@ -33,6 +33,8 @@ $anyState = [a-zA-Z]+;
 const ONE_STEP: &str = r###"
 # TMEncoding-TMEncoding/OneStep
 
+:: TMEncoding-TMEncoding/ExtendTape ;
+
 $any = [01] ;
 $anyState = [a-zA-Z]+;
 
@@ -83,9 +85,6 @@ $anyState = [a-zA-Z]+;
 # stop if halt exists
 [$] { ([^H$]* HALT [^$]*) } [$] > $1 ;
 
-# extend to the left and right if needed
-[$] { ([^$]+) } [$] > | &TMEncoding-TMEncoding/ExtendTape($1) ;
-
 # simulate a step
 [$] { ([^$]+) } [$] > | &TMEncoding-TMEncoding/OneStep($1) ;
 
@@ -106,11 +105,13 @@ fn main() {
 Transliterator encode = Transliterator.createFromRules("Any-TMEncoding", rulesEncode, Transliterator.FORWARD);
 Transliterator decode = Transliterator.createFromRules("TMEncoding-Any", rulesDecode, Transliterator.FORWARD);
 Transliterator extend = Transliterator.createFromRules("TMEncoding-TMEncoding/ExtendTape", rulesExtend, Transliterator.FORWARD);
-Transliterator oneStep = Transliterator.createFromRules("TMEncoding-TMEncoding/OneStep", rulesOneStep, Transliterator.FORWARD);
 
 Transliterator.registerInstance(encode);
 Transliterator.registerInstance(decode);
 Transliterator.registerInstance(extend);
+
+Transliterator oneStep = Transliterator.createFromRules("TMEncoding-TMEncoding/OneStep", rulesOneStep, Transliterator.FORWARD);
+
 Transliterator.registerInstance(oneStep);
 
 Transliterator tm = Transliterator.createFromRules("Any-Any/TM", rulesTM, Transliterator.FORWARD);
@@ -125,18 +126,20 @@ Transliterator tm = Transliterator.createFromRules("Any-Any/TM", rulesTM, Transl
 String rulesEncode = "\n\n# Any-TMEncoding ;\n# Encodes input code points into the turing machine tape.\n\n$blank = '0' ;\n\n$c = [^$] ;\n\n# [$] { ($c) > '(SYM_BEGIN,state)' | $1 ;\n\n# first input zero is in the begin state\n[$] { ($c) > '(' $1 ',' currA ')' ;\n\n($c) > '(' $1 ',' state ')' ;\n\n\n";
 String rulesDecode = "\n\n# TMEncoding-Any ;\n# Decodes the turing machine tape into raw numbers.\n\n$c = [^$] ;\n$anyState = [a-zA-Z]+;\n\n'(' ($c) ',' $anyState ')' > $1 ;\n\n\n";
 String rulesExtend = "\n# TMEncoding-TMEncoding/ExtendTape\n\n$c = [^$];\n\n$empty_sym = 0 ;\n\n[$] { ( '(' $c ',' curr [a-zA-Z]+ ')' ) > | '(' $empty_sym ',' state ')' $1 ;\n( '(' $c ',' curr [a-zA-Z]+ ')' ) } [$] > $1 '(' $empty_sym ',' state ')' ;\n\n\n";
-String rulesOneStep = "\n# TMEncoding-TMEncoding/OneStep\n\n$any = [01] ;\n$anyState = [a-zA-Z]+;\n\n# turing machine steps described as:\n# input,state => write,move_dir,new_state\n\n# 0,A => 1,R,B\n'(' 0 ',' currA ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' currB ')' ;\n\n# 1,A => 1,L,C\n'(' ($any) ',' $anyState ')' '(' 1 ',' currA ')' > '(' $1 ',' currC ')' '(' 1 ',' x ')' ;\n\n# 0,B => 1,L,A\n'(' ($any) ',' $anyState ')' '(' 0 ',' currB ')' > '(' $1 ',' currA ')' '(' 1 ',' x ')' ;\n\n# 1,B => 1,R,B\n'(' 1 ',' currB ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' currB ')' ;\n\n# 0,C => 1,L,B\n'(' ($any) ',' $anyState ')' '(' 0 ',' currC ')' > '(' $1 ',' currB ')' '(' 1 ',' x ')' ;\n\n# 1,C => 1,R,HALT\n'(' 1 ',' currC ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' HALT ')' ;\n\n";
-String rulesTM = "\n# Any-Any/TM ;\n\n:: Any-TMEncoding ;\n\n$any = [01] ;\n$anyState = [a-zA-Z]+;\n\n# stop if halt exists\n[$] { ([^H$]* HALT [^$]*) } [$] > $1 ;\n\n# extend to the left and right if needed\n[$] { ([^$]+) } [$] > | &TMEncoding-TMEncoding/ExtendTape($1) ;\n\n# simulate a step\n[$] { ([^$]+) } [$] > | &TMEncoding-TMEncoding/OneStep($1) ;\n\n:: TMEncoding-Any;\n\n";
+String rulesOneStep = "\n# TMEncoding-TMEncoding/OneStep\n\n:: TMEncoding-TMEncoding/ExtendTape ;\n\n$any = [01] ;\n$anyState = [a-zA-Z]+;\n\n# turing machine steps described as:\n# input,state => write,move_dir,new_state\n\n# 0,A => 1,R,B\n'(' 0 ',' currA ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' currB ')' ;\n\n# 1,A => 1,L,C\n'(' ($any) ',' $anyState ')' '(' 1 ',' currA ')' > '(' $1 ',' currC ')' '(' 1 ',' x ')' ;\n\n# 0,B => 1,L,A\n'(' ($any) ',' $anyState ')' '(' 0 ',' currB ')' > '(' $1 ',' currA ')' '(' 1 ',' x ')' ;\n\n# 1,B => 1,R,B\n'(' 1 ',' currB ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' currB ')' ;\n\n# 0,C => 1,L,B\n'(' ($any) ',' $anyState ')' '(' 0 ',' currC ')' > '(' $1 ',' currB ')' '(' 1 ',' x ')' ;\n\n# 1,C => 1,R,HALT\n'(' 1 ',' currC ')' '(' ($any) ',' $anyState ')' > '(' 1 ',' x ')' '(' $1 ',' HALT ')' ;\n\n";
+String rulesTM = "\n# Any-Any/TM ;\n\n:: Any-TMEncoding ;\n\n$any = [01] ;\n$anyState = [a-zA-Z]+;\n\n# stop if halt exists\n[$] { ([^H$]* HALT [^$]*) } [$] > $1 ;\n\n# simulate a step\n[$] { ([^$]+) } [$] > | &TMEncoding-TMEncoding/OneStep($1) ;\n\n:: TMEncoding-Any;\n\n";
 
 
 Transliterator encode = Transliterator.createFromRules("Any-TMEncoding", rulesEncode, Transliterator.FORWARD);
 Transliterator decode = Transliterator.createFromRules("TMEncoding-Any", rulesDecode, Transliterator.FORWARD);
 Transliterator extend = Transliterator.createFromRules("TMEncoding-TMEncoding/ExtendTape", rulesExtend, Transliterator.FORWARD);
-Transliterator oneStep = Transliterator.createFromRules("TMEncoding-TMEncoding/OneStep", rulesOneStep, Transliterator.FORWARD);
 
 Transliterator.registerInstance(encode);
 Transliterator.registerInstance(decode);
 Transliterator.registerInstance(extend);
+
+Transliterator oneStep = Transliterator.createFromRules("TMEncoding-TMEncoding/OneStep", rulesOneStep, Transliterator.FORWARD);
+
 Transliterator.registerInstance(oneStep);
 
 Transliterator tm = Transliterator.createFromRules("Any-Any/TM", rulesTM, Transliterator.FORWARD);
