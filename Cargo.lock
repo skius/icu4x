@@ -1966,9 +1966,11 @@ name = "icu_transliteration"
 version = "0.0.0"
 dependencies = [
  "databake",
+ "displaydoc",
  "icu_collections",
  "icu_provider",
  "icu_transliteration_data",
+ "litemap",
  "serde",
  "yoke",
  "zerofrom",
