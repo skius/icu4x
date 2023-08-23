@@ -15,6 +15,12 @@ pub(crate) struct Replaceable {
     freeze_post_len: usize,
 }
 
+// note: would be great to have something like Replaceable::replace_range(&mut self, range) -> &mut Insertable 
+// where Insertable supports things like pushing chars, strs, etc, and they would directly go to the corresponding range
+// of the backing Vec<u8>. pushing more things than range.len would reallocate the backing vec to make space on the fly,
+// pushing fewer things than range.len would move around the tail of the Vec on Insertable::drop to fill the "empty space".
+// a "rope" or "cord" to replace the Vec<u8> might also be nice
+
 impl Replaceable {
     pub(crate) fn new(input: String) -> Self {
         Self {
