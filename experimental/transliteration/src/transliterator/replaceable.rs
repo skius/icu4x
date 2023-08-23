@@ -4,6 +4,8 @@
 
 use crate::FilterChain;
 use core::str;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 pub(crate) struct Replaceable {
     // guaranteed to be valid UTF-8
