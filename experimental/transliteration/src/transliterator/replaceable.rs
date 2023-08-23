@@ -10,10 +10,10 @@ use alloc::vec::Vec;
 use super::Filter;
 
 /// Wrapper for in-place transliteration. Stores the currently allowed transliteration range.
-pub(crate) struct Replaceable {
+pub(crate) struct Replaceable<'a> {
     // guaranteed to be valid UTF-8
     // only content[freeze_pre_len..content.len()-freeze_post_len] is mutable
-    content: Vec<u8>,
+    content: &'a mut Vec<u8>,
     // guaranteed to be a valid UTF-8 index into content
     freeze_pre_len: usize,
     // `content.len() - freeze_post_len` is guaranteed to be a valid UTF-8 index into content
@@ -27,16 +27,10 @@ pub(crate) struct Replaceable {
 // pushing fewer things than range.len would move around the tail of the Vec on Insertable::drop to fill the "empty space".
 // a "rope" or "cord" to replace the Vec<u8> might also be nice
 
-// TODO(latest): could design opaque VecWrapper that is a required argument to all Replaceable calls as a mut ref, and the mut ref is passed
-// through the call chains. Replaceable would not hold the Vec, would only be a wrapper around a bunch of usizes.
-// OTHER THOUGHT: if that's possible, surely somehow the mutref can be part of the API
-// actually yes, with_range just needs to return a Replaceable with a lifetime shorter than 'a! aka, the <'b>(&'b self) lifetime!
-// try this
-
-impl Replaceable {
+impl<'a> Replaceable<'a> {
     /// # Safety
     /// The caller must ensure `buf` is valid UTF-8.
-    pub(crate) unsafe fn new(buf: Vec<u8>) -> Self {
+    pub(crate) unsafe fn new(buf: &'a mut Vec<u8>) -> Self {
         Self {
             content: buf,
             // these lengths uphold the invariants
@@ -69,6 +63,10 @@ impl Replaceable {
     /// This is guaranteed to be a range compatible with the internal UTF-8.
     pub(crate) fn allowed_range(&self) -> Range<usize> {
         self.freeze_pre_len..(self.content.len() - self.freeze_post_len)
+    }
+
+    pub(crate) fn with_range(&mut self, range: Range<usize>) -> Replaceable {
+        Replaceable { content: self.content, freeze_pre_len: range.start, freeze_post_len: range.end }
     }
 
     // pub(crate) fn get(&self, pos: usize) -> Option<u8> {

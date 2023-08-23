@@ -163,23 +163,18 @@ impl<'a> RuleBasedTransliterator<'a> {
     ///      i. Transliterate the first id_group, then the first rule_group, then the second id_group, etc.
     // muster-child signature of internal transliteration. due to the borrowchecker we cannot work with &mut,
     // and instead need to work with owned data that we pass back to the caller after we're done with it.
-    fn transliterate(&self, mut rep: Replaceable, env: &Env) -> Replaceable {
+    fn transliterate(&self, mut rep: Replaceable, env: &Env) {
         // need to store rep's 
 
+        let first = rep.with_range(0..1);
+        drop(first);
+        let second = rep.with_range(2..3);
 
         debug_assert_eq!(self.id_group_list.len(), self.rule_group_list.len());
 
-        rep
     }
 
-    fn test1() {
-        let mut x = 1;
-        let x_ref = &mut x;
-        Self::test2(x_ref);
-        *x_ref = 2;
-    }
 
-    fn test2(x: &mut usize) {}
 
 
     //     // first: process the groups in order, i.e., id_group_list[0], rule_group_list[0], id_group_list[1], rule_group_list[1], ...
