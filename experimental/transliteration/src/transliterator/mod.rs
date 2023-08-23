@@ -10,12 +10,12 @@ use crate::TransliteratorError;
 use alloc::borrow::Cow;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
+use icu_collections::codepointinvlist::CodePointInversionList;
 use icu_provider::_internal::locid::Locale;
 use icu_provider::{DataError, DataLocale, DataPayload, DataProvider, DataRequest};
-use icu_collections::codepointinvlist::CodePointInversionList;
 
-use litemap::LiteMap;
 use borrowed::*;
+use litemap::LiteMap;
 use replaceable::*;
 
 type Filter<'a> = CodePointInversionList<'a>;
@@ -117,9 +117,9 @@ impl Transliterator {
             match special {
                 "Any-NFC" => Ok(InternalTransliterator::NFC(NFCTransliterator {})),
                 _ => Ok(InternalTransliterator::NFC(NFCTransliterator {})),
-                s => {
-                    Err(DataError::custom("unavailable transliterator").with_debug_context(s).into())
-                },
+                s => Err(DataError::custom("unavailable transliterator")
+                    .with_debug_context(s)
+                    .into()),
             }
         } else {
             let mut data_locale = DataLocale::default();
@@ -173,8 +173,10 @@ mod tests {
     #[test]
     fn test() {
         let t = Transliterator::try_new("de-t-de-d0-ascii".parse().unwrap()).unwrap();
-        let input = r"Über ältere Lügner lästern ist sehr a\u{0308}rgerlich. Ja, SEHR ÄRGERLICH! - ꜵ";
-        let output = "Ueber aeltere Luegner laestern ist sehr aergerlich. Ja, SEHR AERGERLICH! - ao";
+        let input =
+            r"Über ältere Lügner lästern ist sehr a\u{0308}rgerlich. Ja, SEHR ÄRGERLICH! - ꜵ";
+        let output =
+            "Ueber aeltere Luegner laestern ist sehr aergerlich. Ja, SEHR AERGERLICH! - ao";
         assert_eq!(t.transliterate(input), output);
     }
 }

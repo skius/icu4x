@@ -44,7 +44,11 @@ impl Replaceable {
     }
 
     /// Returns the next run (run_start_index, run_length) that occurs after `start`, if one exists.
-    pub(crate) fn next_filtered_run(&self, start: usize, filter: &FilterChain) -> Option<(usize, usize)> {
+    pub(crate) fn next_filtered_run(
+        &self,
+        start: usize,
+        filter: &FilterChain,
+    ) -> Option<(usize, usize)> {
         debug_assert!(start < self.content.len());
 
         let run_start = self.find_first_in(start, filter)?;
@@ -65,5 +69,4 @@ impl Replaceable {
         let (idx, _) = tail.char_indices().find(|&(_, c)| !filter.contains(c))?;
         Some(start + idx)
     }
-
 }

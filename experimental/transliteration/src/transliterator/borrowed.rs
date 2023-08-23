@@ -2,14 +2,14 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use super::{CustomTransliterator, NFCTransliterator, FilterChain, Filter};
-use crate::provider::{RuleBasedTransliterator, SimpleId, RuleULE, Rule, VarTable, FunctionCall};
+use super::{CustomTransliterator, Filter, FilterChain, NFCTransliterator};
+use crate::provider::{FunctionCall, Rule, RuleBasedTransliterator, RuleULE, SimpleId, VarTable};
 use alloc::borrow::Cow;
 use alloc::string::String;
 use alloc::vec::Vec;
-use icu_collections::codepointinvliststringlist::CodePointInversionListAndStringList;
 use core::str;
 use icu_collections::codepointinvlist::CodePointInversionList;
+use icu_collections::codepointinvliststringlist::CodePointInversionListAndStringList;
 use litemap::LiteMap;
 use zerofrom::ZeroFrom;
 use zerovec::VarZeroSlice;
@@ -40,17 +40,13 @@ pub(super) struct BorrowedTransliterator<'a> {
 
 impl<'a> BorrowedTransliterator<'a> {
     pub fn transliterate(&self, input: &str) -> String {
-        self.main.transliterate(input, &FilterChain::new(), &self.env)
+        self.main
+            .transliterate(input, &FilterChain::new(), &self.env)
     }
 }
 
 impl<'a> RuleBasedTransliterator<'a> {
-    fn transliterate(
-        &self,
-        input: &str,
-        filter: &FilterChain,
-        env: &Env<'a>,
-    ) -> String {
+    fn transliterate(&self, input: &str, filter: &FilterChain, env: &Env<'a>) -> String {
         debug_assert_eq!(self.id_group_list.len(), self.rule_group_list.len());
         let filter = filter.add(&self.filter);
 
@@ -61,19 +57,35 @@ impl<'a> RuleBasedTransliterator<'a> {
             // first handle id_group
             for single_id in id_group.iter() {
                 let id = SimpleId::zero_from(single_id);
-                let transliterated = self.transliterate_nested(id, unsafe { str::from_utf8_unchecked(&buf[..]) }, &filter, env);
+                let transliterated = self.transliterate_nested(
+                    id,
+                    unsafe { str::from_utf8_unchecked(&buf[..]) },
+                    &filter,
+                    env,
+                );
                 buf = transliterated.into_bytes();
             }
 
             // then handle rule_group
-            let transliterated = self.transliterate_rule_group(rule_group, unsafe { str::from_utf8_unchecked(&buf[..]) }, &filter, env);
+            let transliterated = self.transliterate_rule_group(
+                rule_group,
+                unsafe { str::from_utf8_unchecked(&buf[..]) },
+                &filter,
+                env,
+            );
             buf = transliterated.into_bytes();
         }
 
         unsafe { String::from_utf8_unchecked(buf) }
     }
 
-    fn transliterate_nested(&self, id: SimpleId<'a>, input: &str, filter: &FilterChain, env: &Env<'a>) -> String {
+    fn transliterate_nested(
+        &self,
+        id: SimpleId<'a>,
+        input: &str,
+        filter: &FilterChain,
+        env: &Env<'a>,
+    ) -> String {
         let filter = filter.add(&id.filter);
         // this get succeeds for valid RBT serializations
         if let Some(transliterator) = env.get(&id.id) {
@@ -83,17 +95,21 @@ impl<'a> RuleBasedTransliterator<'a> {
         String::new()
     }
 
-    fn transliterate_rule_group(&self, rules: &VarZeroSlice<RuleULE>, input: &str, filter: &FilterChain, env: &Env<'a>) -> String {
+    fn transliterate_rule_group(
+        &self,
+        rules: &VarZeroSlice<RuleULE>,
+        input: &str,
+        filter: &FilterChain,
+        env: &Env<'a>,
+    ) -> String {
         // for (start_index, run_length) in filtered_runs...
-        
-        
+
         for rule in rules.iter() {
             let rule = Rule::zero_from(rule);
             let transliterated = self.transliterate_rule(rule, input, env);
         }
 
         String::new()
-
     }
 
     fn transliterate_rule(&self, rule: Rule<'a>, input: &str, env: &Env<'a>) -> String {
@@ -153,7 +169,7 @@ impl<'a> VarTableElement<'a> {
             VarTableElement::Compound(elt) => SpecialReplacer::Compound(elt),
             VarTableElement::FunctionCall(elt) => SpecialReplacer::FunctionCall(elt),
             VarTableElement::BackReference(elt) => SpecialReplacer::BackReference(elt),
-            _ => return None,  
+            _ => return None,
         })
     }
 
@@ -187,7 +203,7 @@ impl<'a> VarTable<'a> {
                 Self::RESERVED_ANCHOR_END => Some(VarTableElement::AnchorEnd),
                 Self::RESERVED_ANCHOR_START => Some(VarTableElement::AnchorStart),
                 _ => None,
-            }
+            };
         }
         let idx = query - Self::BASE;
         let mut idx = idx as usize;
@@ -198,21 +214,30 @@ impl<'a> VarTable<'a> {
         if idx < next_base {
             return Some(VarTableElement::Compound(&self.compounds[idx]));
         }
-        // no underflow for all these idx subtractions, as idx is always >= next_base 
+        // no underflow for all these idx subtractions, as idx is always >= next_base
         idx -= next_base;
         next_base = self.quantifiers_opt.len();
         if idx < next_base {
-            return Some(VarTableElement::Quantifier(QuantifierKind::ZeroOrOne, &self.quantifiers_opt[idx]));
+            return Some(VarTableElement::Quantifier(
+                QuantifierKind::ZeroOrOne,
+                &self.quantifiers_opt[idx],
+            ));
         }
         idx -= next_base;
         next_base = self.quantifiers_kleene.len();
         if idx < next_base {
-            return Some(VarTableElement::Quantifier(QuantifierKind::ZeroOrMore, &self.quantifiers_kleene[idx]));
+            return Some(VarTableElement::Quantifier(
+                QuantifierKind::ZeroOrMore,
+                &self.quantifiers_kleene[idx],
+            ));
         }
         idx -= next_base;
         next_base = self.quantifiers_kleene_plus.len();
         if idx < next_base {
-            return Some(VarTableElement::Quantifier(QuantifierKind::OneOrMore, &self.quantifiers_kleene_plus[idx]));
+            return Some(VarTableElement::Quantifier(
+                QuantifierKind::OneOrMore,
+                &self.quantifiers_kleene_plus[idx],
+            ));
         }
         idx -= next_base;
         next_base = self.segments.len();
@@ -222,12 +247,16 @@ impl<'a> VarTable<'a> {
         idx -= next_base;
         next_base = self.unicode_sets.len();
         if idx < next_base {
-            return Some(VarTableElement::UnicodeSet(CodePointInversionListAndStringList::zero_from(&self.unicode_sets[idx])));
+            return Some(VarTableElement::UnicodeSet(
+                CodePointInversionListAndStringList::zero_from(&self.unicode_sets[idx]),
+            ));
         }
         idx -= next_base;
         next_base = self.function_calls.len();
         if idx < next_base {
-            return Some(VarTableElement::FunctionCall(FunctionCall::zero_from(&self.function_calls[idx])));
+            return Some(VarTableElement::FunctionCall(FunctionCall::zero_from(
+                &self.function_calls[idx],
+            )));
         }
         idx -= next_base;
         // idx must be a backreference (an u32 encoded as <itself> indices past the last valid VarZeroVec index)
@@ -252,4 +281,3 @@ impl<'a> VarTable<'a> {
 //     output: &'b mut Vec<u8>,
 //     output_
 // }
-
