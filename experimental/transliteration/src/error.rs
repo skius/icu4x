@@ -18,6 +18,8 @@ pub enum TransliteratorError {
     /// An error originating inside of the [data provider](icu_provider).
     #[displaydoc("{0}")]
     Data(DataError),
+    /// The requested transliterator is marked as internal-only.
+    InternalOnly,
 }
 
 impl From<DataError> for TransliteratorError {
